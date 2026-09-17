@@ -46,6 +46,15 @@ jobs:
           name: stream-vault-release
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+      - name: Publish build diagnostics
+        if: failure()
+        run: |
+          {
+            echo '### Gradle build diagnostics'
+            echo '```text'
+            tail -160 build.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload build log when the build fails
         if: failure()
         uses: actions/upload-artifact@v4
