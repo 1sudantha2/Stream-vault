@@ -10,9 +10,6 @@ import android.os.Build
 import android.util.Rational
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -58,8 +55,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Dialog
-import androidx.compose.material3.DialogProperties
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -334,8 +331,10 @@ fun PlayerScreen(
                                 onFullscreen = { fullscreen = !fullscreen; setFullscreen(activity, fullscreen) },
                             )
                         }
-                        AnimatedVisibility(visible = isBuffering, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.Center)) {
-                            CircularBuffering()
+                        if (isBuffering) {
+                            Box(Modifier.fillMaxSize()) {
+                                CircularBuffering(Modifier.align(Alignment.Center))
+                            }
                         }
                         seekFeedback?.let { SeekFeedback(it, modifier = Modifier.align(Alignment.Center)) }
                         gestureText?.let { SeekFeedback(it, modifier = Modifier.align(Alignment.Center)) }
@@ -427,11 +426,11 @@ private fun PlayerChromeOverlay(
         Box(Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(top = 52.dp).fillMaxHeight(.26f).background(Brush.verticalGradient(listOf(Color.Black.copy(.5f), Color.Transparent))))
         Box(Modifier.fillMaxWidth().align(Alignment.BottomCenter).fillMaxHeight(.36f).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(.92f)))))
         Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(26.dp)) {
-            IconButton(onClick = { onSkip(-10) }, Modifier.size(52.dp)) { Icon(Icons.Rounded.Replay10, "Back 10 seconds", tint = Color.White, Modifier.size(36.dp)) }
+            IconButton(onClick = { onSkip(-10) }, Modifier.size(52.dp)) { Icon(Icons.Rounded.Replay10, "Back 10 seconds", modifier = Modifier.size(36.dp), tint = Color.White) }
             IconButton(onClick = onPlayPause, Modifier.size(72.dp).clip(CircleShape).background(Cyan)) {
-                Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (isPlaying) "Pause" else "Play", tint = Color(0xFF001F24), Modifier.size(44.dp))
+                Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (isPlaying) "Pause" else "Play", modifier = Modifier.size(44.dp), tint = Color(0xFF001F24))
             }
-            IconButton(onClick = { onSkip(10) }, Modifier.size(52.dp)) { Icon(Icons.Rounded.Replay10, "Forward 10 seconds", tint = Color.White, Modifier.size(36.dp).graphicsLayer { scaleX = -1f }) }
+            IconButton(onClick = { onSkip(10) }, Modifier.size(52.dp)) { Icon(Icons.Rounded.Replay10, "Forward 10 seconds", modifier = Modifier.size(36.dp).graphicsLayer { scaleX = -1f }, tint = Color.White) }
         }
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -495,8 +494,8 @@ private fun PlayerGestures(
 }
 
 @Composable
-private fun CircularBuffering() {
-    androidx.compose.material3.CircularProgressIndicator(color = Cyan, modifier = Modifier.size(48.dp), strokeWidth = 3.dp)
+private fun CircularBuffering(modifier: Modifier = Modifier) {
+    androidx.compose.material3.CircularProgressIndicator(color = Cyan, modifier = modifier.size(48.dp), strokeWidth = 3.dp)
 }
 
 @Composable
