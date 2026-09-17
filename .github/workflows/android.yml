@@ -62,16 +62,10 @@ jobs:
           } | while IFS= read -r line; do
             echo "::error title=Gradle diagnostics::$line"
           done
-          echo '--- compiler and Gradle errors ---'
-          grep -E '(^e:|error:|Unresolved reference|Type mismatch|Cannot access|Overload resolution ambiguity|None of the following|Could not resolve|Could not find|Execution failed|FAILURE:|What went wrong|Caused by:)' build.log | tail -100 | while IFS= read -r line; do
+          echo '--- compiler errors ---'
+          grep -E '(^e:|error:|Unresolved reference|Type mismatch|Cannot access|Overload resolution ambiguity|None of the following)' build.log | head -40 | while IFS= read -r line; do
             echo "::error title=Compiler::$line"
           done
-          {
-            echo '### Compiler and Gradle error lines'
-            echo '```text'
-            grep -E '(^e:|error:|Unresolved reference|Type mismatch|Cannot access|Overload resolution ambiguity|None of the following|Could not resolve|Could not find|Execution failed|FAILURE:|What went wrong|Caused by:)' build.log | tail -100 || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload build log when the build fails
         if: failure()
         uses: actions/upload-artifact@v4
