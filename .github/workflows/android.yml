@@ -55,8 +55,12 @@ jobs:
             tail -160 build.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          tail -45 build.log | while IFS= read -r line; do
-            echo "::error title=Gradle tail::$line"
+          {
+            head -80 build.log
+            echo '--- tail ---'
+            tail -20 build.log
+          } | while IFS= read -r line; do
+            echo "::error title=Gradle diagnostics::$line"
           done
       - name: Upload build log when the build fails
         if: failure()
