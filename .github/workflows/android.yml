@@ -21,9 +21,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      # GitHub's ubuntu runner already provides the Android SDK, platform tools and
-      # an accepted SDK license set. Avoid the third-party SDK setup action here so
-      # the build remains available in restricted Actions environments.
+      # The runner has command-line tools installed. Install the exact platform
+      # used by compileSdk so the build does not depend on runner image defaults.
+      - name: Install Android SDK platform
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
