@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.streamvault.player"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.streamvault.player"
