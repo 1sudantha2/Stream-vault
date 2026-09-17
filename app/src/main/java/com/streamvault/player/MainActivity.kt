@@ -87,7 +87,6 @@ class MainActivity : ComponentActivity() {
                     },
                     onSaveServer = { value -> settingsRepository.setServerUrl(value) },
                     onSetKeepScreenOn = { settingsRepository.setKeepScreenOn(it) },
-                    onSetHardware = { settingsRepository.setPreferHardware(it) },
                     onSetAutoplay = { settingsRepository.setAutoplay(it) },
                     onSetSpeed = { settingsRepository.setSpeed(it) },
                     onSetSubtitleDelay = { settingsRepository.setSubtitleDelay(it) },
@@ -138,7 +137,6 @@ private fun StreamVaultRoot(
     onOpenSubtitle: () -> Unit,
     onSaveServer: suspend (String) -> Unit,
     onSetKeepScreenOn: suspend (Boolean) -> Unit,
-    onSetHardware: suspend (Boolean) -> Unit,
     onSetAutoplay: suspend (Boolean) -> Unit,
     onSetSpeed: suspend (Float) -> Unit,
     onSetSubtitleDelay: suspend (Long) -> Unit,
@@ -181,7 +179,6 @@ private fun StreamVaultRoot(
                 onBack = onBackFromSettings,
                 onSaveServer = onSaveServer,
                 onSetKeepScreenOn = onSetKeepScreenOn,
-                onSetHardware = onSetHardware,
                 onSetAutoplay = onSetAutoplay
             )
             Page.PLAYER -> HomeScreen(

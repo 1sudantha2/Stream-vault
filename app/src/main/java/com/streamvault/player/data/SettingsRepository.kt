@@ -16,7 +16,6 @@ class SettingsRepository(private val context: Context) {
     private object Keys {
         val serverUrl = stringPreferencesKey("server_url")
         val keepScreenOn = booleanPreferencesKey("keep_screen_on")
-        val hardware = booleanPreferencesKey("prefer_hardware")
         val autoplay = booleanPreferencesKey("autoplay")
         val speed = floatPreferencesKey("playback_speed")
         val subtitleDelay = longPreferencesKey("subtitle_delay_ms")
@@ -26,7 +25,6 @@ class SettingsRepository(private val context: Context) {
         AppSettings(
             serverUrl = p[Keys.serverUrl].orEmpty(),
             keepScreenOn = p[Keys.keepScreenOn] ?: true,
-            preferHardwareDecoding = p[Keys.hardware] ?: true,
             autoplay = p[Keys.autoplay] ?: true,
             defaultPlaybackSpeed = p[Keys.speed] ?: 1f,
             subtitleDelayMs = p[Keys.subtitleDelay] ?: 0L
@@ -35,7 +33,6 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setServerUrl(value: String) = context.streamVaultDataStore.edit { it[Keys.serverUrl] = value.trim().removeSuffix("/") }
     suspend fun setKeepScreenOn(value: Boolean) = context.streamVaultDataStore.edit { it[Keys.keepScreenOn] = value }
-    suspend fun setPreferHardware(value: Boolean) = context.streamVaultDataStore.edit { it[Keys.hardware] = value }
     suspend fun setAutoplay(value: Boolean) = context.streamVaultDataStore.edit { it[Keys.autoplay] = value }
     suspend fun setSpeed(value: Float) = context.streamVaultDataStore.edit { it[Keys.speed] = value }
     suspend fun setSubtitleDelay(value: Long) = context.streamVaultDataStore.edit { it[Keys.subtitleDelay] = value }

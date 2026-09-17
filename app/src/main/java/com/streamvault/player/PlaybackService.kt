@@ -8,14 +8,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import com.streamvault.player.data.SettingsRepository
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 /**
- * Keeps the Media3 player alive when the Activity is backgrounded.  The default
- * Android decoder is used first; Media3's FFmpeg extension is registered after
- * it as a safe software fallback for formats a device cannot decode in hardware.
+ * Keeps the Media3 player alive when the Activity is backgrounded. Media3 uses
+ * Android's hardware MediaCodec decoder path first and can retry with another
+ * device codec when a stream cannot be initialized.
  */
 class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
@@ -23,17 +20,8 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
-        val preferHardware = runCatching {
-            runBlocking { SettingsRepository(applicationContext).settings.first().preferHardwareDecoding }
-        }.getOrDefault(true)
-        val rendererMode = if (preferHardware) {
-            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
-        } else {
-            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
-        }
         val renderers = DefaultRenderersFactory(this)
             .setEnableDecoderFallback(true)
-            .setExtensionRendererMode(rendererMode)
         player = ExoPlayer.Builder(this, renderers)
             .setAudioAttributes(
                 AudioAttributes.Builder()

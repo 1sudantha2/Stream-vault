@@ -56,7 +56,6 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSaveServer: suspend (String) -> Unit,
     onSetKeepScreenOn: suspend (Boolean) -> Unit,
-    onSetHardware: suspend (Boolean) -> Unit,
     onSetAutoplay: suspend (Boolean) -> Unit
 ) {
     BackHandler(onBack = onBack)
@@ -117,12 +116,7 @@ fun SettingsScreen(
                 }
 
                 SettingSection(title = "DECODER", icon = { Icon(Icons.Rounded.Memory, null, tint = Cyan) }) {
-                    SettingToggle(
-                        title = "Prefer device hardware decoder",
-                        description = "Hardware-first rendering reduces CPU, battery and RAM use. Media3 falls back when a device cannot decode the format.",
-                        checked = settings.preferHardwareDecoding,
-                        onCheckedChange = { scope.launch { onSetHardware(it) } }
-                    )
+                    Text("Hardware-first Media3 rendering is always enabled to keep CPU, battery and RAM use low. Android automatically chooses a compatible software MediaCodec fallback when hardware decoding is unavailable.", color = VaultMuted, lineHeight = 18.sp, fontSize = 12.sp)
                     Text("Media3 / ExoPlayer • H.264 • H.265 / HEVC • VP9 • AV1 (device dependent)", color = VaultMuted, fontFamily = FontFamily.Monospace, fontSize = 10.sp, lineHeight = 16.sp)
                 }
 

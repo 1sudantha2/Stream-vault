@@ -16,7 +16,6 @@ data class VideoItem(
 data class AppSettings(
     val serverUrl: String = "",
     val keepScreenOn: Boolean = true,
-    val preferHardwareDecoding: Boolean = true,
     val autoplay: Boolean = true,
     val defaultPlaybackSpeed: Float = 1f,
     val subtitleDelayMs: Long = 0L
