@@ -71,7 +71,9 @@ class AdminClient(private val server: String) {
         if (url.startsWith("/")) { onError("Set a backend server URL first"); return }
         val request = Request.Builder().url(url).method(method, body).build()
         http.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) = main.post { onError(e.message ?: "Request failed") }
+            override fun onFailure(call: Call, e: IOException) {
+                main.post { onError(e.message ?: "Request failed") }
+            }
             override fun onResponse(call: Call, response: Response) {
                 response.use {
                     if (it.isSuccessful) main.post { onSuccess() }
