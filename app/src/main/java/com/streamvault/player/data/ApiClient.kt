@@ -21,6 +21,17 @@ object ApiClient {
         parseVideo(JSONObject(get("${normalize(server)}/api/videos/${encodePath(id)}")), server)
     }
 
+    suspend fun deleteVideo(server: String, id: String) = withContext(Dispatchers.IO) {
+        val connection = (URL("${normalize(server)}/api/videos/${encodePath(id)}").openConnection() as HttpURLConnection).apply {
+            requestMethod = "DELETE"
+            connectTimeout = 10_000
+            readTimeout = 20_000
+        }
+        try {
+            if (connection.responseCode !in 200..299) throw ApiException("Server returned HTTP ${connection.responseCode}")
+        } finally { connection.disconnect() }
+    }
+
     fun streamUrl(server: String, path: String?): String? {
         if (path.isNullOrBlank()) return null
         if (path.startsWith("http://") || path.startsWith("https://")) return path

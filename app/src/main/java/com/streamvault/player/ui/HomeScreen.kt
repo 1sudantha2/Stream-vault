@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Refresh
@@ -72,6 +73,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     serverUrl: String,
     onOpenSettings: () -> Unit,
+    onOpenAdmin: () -> Unit,
     onPlayVideo: (VideoItem) -> Unit,
     onPlayUrl: (String, String) -> Unit,
     onOpenLocalVideo: () -> Unit
@@ -81,6 +83,8 @@ fun HomeScreen(
     var error by remember(serverUrl) { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     var showUrlDialog by remember { mutableStateOf(false) }
+    var deleteCandidate by remember { mutableStateOf<VideoItem?>(null) }
+    var deleting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     fun refresh() {
@@ -112,6 +116,7 @@ fun HomeScreen(
                 query = query,
                 onQueryChange = { query = it },
                 onOpenSettings = onOpenSettings,
+                onOpenAdmin = onOpenAdmin,
                 onRefresh = ::refresh,
                 onOpenUrl = { showUrlDialog = true },
                 onOpenLocal = onOpenLocalVideo
@@ -131,7 +136,7 @@ fun HomeScreen(
                     when {
                         isLoading && videos.isEmpty() -> LoadingState()
                         !isLoading && filtered.isEmpty() -> EmptyState(query, onOpenSettings)
-                        else -> VideoGrid(filtered, onPlayVideo)
+                        else -> VideoGrid(filtered, onPlayVideo, onDelete = { deleteCandidate = it })
                     }
                 }
             }
@@ -147,6 +152,25 @@ fun HomeScreen(
             }
         )
     }
+    deleteCandidate?.let { video ->
+        AlertDialog(
+            onDismissRequest = { if (!deleting) deleteCandidate = null },
+            title = { Text("Delete video?") },
+            text = { Text("Delete \"${video.title}\" from the Stream-Vault server? This cannot be undone.") },
+            confirmButton = {
+                Button(enabled = !deleting, onClick = {
+                    scope.launch {
+                        deleting = true
+                        runCatching { ApiClient.deleteVideo(serverUrl, video.id) }
+                            .onSuccess { videos = videos.filterNot { it.id == video.id }; deleteCandidate = null }
+                            .onFailure { error = it.message ?: "Could not delete video" }
+                        deleting = false
+                    }
+                }) { Text(if (deleting) "Deleting…" else "Delete") }
+            },
+            dismissButton = { TextButton(enabled = !deleting, onClick = { deleteCandidate = null }) { Text("Cancel") } }
+        )
+    }
 }
 
 @Composable
@@ -154,6 +178,7 @@ private fun HomeTopBar(
     query: String,
     onQueryChange: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAdmin: () -> Unit,
     onRefresh: () -> Unit,
     onOpenUrl: () -> Unit,
     onOpenLocal: () -> Unit
@@ -172,6 +197,7 @@ private fun HomeTopBar(
                 Text("MEDIA LIBRARY", color = Cyan, fontFamily = FontFamily.Monospace, fontSize = 9.sp, letterSpacing = 1.sp)
             }
             IconButton(onClick = onRefresh) { Icon(Icons.Rounded.Refresh, "Refresh") }
+            IconButton(onClick = onOpenAdmin) { Icon(Icons.Rounded.Add, "Add video", tint = Cyan) }
             IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings") }
         }
         Spacer(Modifier.height(10.dp))
@@ -245,7 +271,7 @@ private fun Stat(value: String, label: String) {
 }
 
 @Composable
-private fun VideoGrid(videos: List<VideoItem>, onPlayVideo: (VideoItem) -> Unit) {
+private fun VideoGrid(videos: List<VideoItem>, onPlayVideo: (VideoItem) -> Unit, onDelete: (VideoItem) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 250.dp),
         modifier = Modifier.fillMaxSize(),
@@ -253,12 +279,12 @@ private fun VideoGrid(videos: List<VideoItem>, onPlayVideo: (VideoItem) -> Unit)
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(videos, key = { it.id }) { video -> VideoCard(video, onClick = { onPlayVideo(video) }) }
+        items(videos, key = { it.id }) { video -> VideoCard(video, onClick = { onPlayVideo(video) }, onDelete = { onDelete(video) }) }
     }
 }
 
 @Composable
-private fun VideoCard(video: VideoItem, onClick: () -> Unit) {
+private fun VideoCard(video: VideoItem, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(13.dp),
@@ -291,9 +317,12 @@ private fun VideoCard(video: VideoItem, onClick: () -> Unit) {
             }
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(video.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(formatDate(video.createdAt), color = VaultMuted, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(formatDate(video.createdAt), color = VaultMuted, fontFamily = FontFamily.Monospace, fontSize = 10.sp, modifier = Modifier.weight(1f))
                     Text(formatBytes(video.sizeBytes), color = VaultMuted, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                    IconButton(onClick = onDelete, modifier = Modifier.size(30.dp)) {
+                        Icon(Icons.Rounded.Delete, "Delete video", tint = Color(0xFFFF8A80), modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }

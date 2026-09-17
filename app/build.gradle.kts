@@ -71,4 +71,6 @@ dependencies {
     // NextPlayer's decoder extension: hardware, Android software MediaCodec and FFmpeg modes.
     implementation("io.github.anilbeesetti:nextlib-media3ext:1.11.1-0.16.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    // Small HTTP/WebSocket client for the live Admin dashboard job updates.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

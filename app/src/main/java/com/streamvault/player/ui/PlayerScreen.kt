@@ -2,6 +2,7 @@ package com.streamvault.player.ui
 
 import android.app.Activity
 import android.app.PictureInPictureParams
+import android.os.Bundle
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
@@ -101,15 +102,19 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
 import com.streamvault.player.data.ApiClient
 import com.streamvault.player.data.VideoItem
 import com.streamvault.player.util.formatDurationMs
+import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private enum class PlayerDialog { NONE, OPTIONS, AUDIO, SUBTITLE, SPEED }
+private enum class PlayerDialog { NONE, OPTIONS, AUDIO, SUBTITLE, SPEED, DECODER }
 private enum class VerticalGesture { BRIGHTNESS, VOLUME }
 
 /**
@@ -130,6 +135,8 @@ fun PlayerScreen(
     onOpenSubtitle: () -> Unit,
     onSetSpeed: suspend (Float) -> Unit = {},
     onSetSubtitleDelay: suspend (Long) -> Unit = {},
+    onLoadPlaybackPosition: suspend (String) -> Long = { 0L },
+    onSavePlaybackPosition: suspend (String, Long, Long) -> Unit = { _, _, _ -> },
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -153,6 +160,7 @@ fun PlayerScreen(
     var fullscreen by remember { mutableStateOf(false) }
     var fitVideo by remember { mutableStateOf(true) }
     var errorText by remember { mutableStateOf<String?>(null) }
+    var decoderMode by remember { mutableStateOf(DecoderMode.HARDWARE) }
     val scope = rememberCoroutineScope()
 
     BackHandler {
@@ -166,10 +174,11 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(player, source, externalSubtitleUri) {
+    LaunchedEffect(player, source, externalSubtitleUri, video.id) {
         if (player == null || source.isNullOrBlank()) return@LaunchedEffect
         val sameSource = player.currentMediaItem?.localConfiguration?.uri?.toString() == source
-        val previousPosition = if (sameSource) player.currentPosition.coerceAtLeast(0L) else 0L
+        val savedPosition = onLoadPlaybackPosition(video.id).coerceAtLeast(0L)
+        val previousPosition = if (sameSource) player.currentPosition.coerceAtLeast(0L) else savedPosition
         val wasPlaying = player.isPlaying
         val builder = MediaItem.Builder()
             .setUri(Uri.parse(source))
@@ -190,19 +199,27 @@ fun PlayerScreen(
             override fun onPlaybackStateChanged(playbackState: Int) {
                 isBuffering = playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) errorText = null
+                if (playbackState == Player.STATE_ENDED) {
+                    scope.launch { onSavePlaybackPosition(video.id, 0L, durationMs) }
+                }
             }
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
     }
 
-    LaunchedEffect(player) {
-        while (true) {
+    LaunchedEffect(player, video.id) {
+        var lastSavedPosition = -1_000L
+        while (isActive) {
             player?.let {
                 isPlaying = it.isPlaying
                 isBuffering = it.playbackState == Player.STATE_BUFFERING
                 positionMs = it.currentPosition.coerceAtLeast(0L)
                 durationMs = it.duration.takeIf { value -> value > 0L } ?: 0L
+                if (positionMs >= 2_000L && abs(positionMs - lastSavedPosition) >= 1_000L) {
+                    onSavePlaybackPosition(video.id, positionMs, durationMs)
+                    lastSavedPosition = positionMs
+                }
             }
             delay(250)
         }
@@ -363,6 +380,8 @@ fun PlayerScreen(
             onPip = { dialog = PlayerDialog.NONE; enterPip(activity) },
             onFullscreen = { dialog = PlayerDialog.NONE; fullscreen = !fullscreen; setFullscreen(activity, fullscreen) },
             onFit = { dialog = PlayerDialog.NONE; fitVideo = !fitVideo; zoom = 1f },
+            decoderMode = decoderMode,
+            onDecoder = { dialog = PlayerDialog.DECODER },
         )
         PlayerDialog.AUDIO -> TrackDialog("Select audio track", player, C.TRACK_TYPE_AUDIO) { dialog = PlayerDialog.OPTIONS }
         PlayerDialog.SUBTITLE -> SubtitleDialog(
@@ -373,6 +392,14 @@ fun PlayerScreen(
             onSetDelay = { value -> scope.launch { onSetSubtitleDelay(value) } },
         )
         PlayerDialog.SPEED -> SpeedDialog(player, { dialog = PlayerDialog.OPTIONS }) { scope.launch { onSetSpeed(it) } }
+        PlayerDialog.DECODER -> DecoderDialog(decoderMode, { dialog = PlayerDialog.OPTIONS }) { selected ->
+            decoderMode = selected
+            (player as? MediaController)?.let { controller ->
+                sendDecoderMode(controller, "SET_VIDEO_DECODER_MODE", selected)
+                sendDecoderMode(controller, "SET_AUDIO_DECODER_MODE", selected)
+            }
+            dialog = PlayerDialog.OPTIONS
+        }
         PlayerDialog.NONE -> Unit
     }
 }
@@ -536,6 +563,8 @@ private fun OptionsPanel(
     onPip: () -> Unit,
     onFullscreen: () -> Unit,
     onFit: () -> Unit,
+    decoderMode: DecoderMode,
+    onDecoder: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxSize().padding(vertical = 8.dp, horizontal = 8.dp), contentAlignment = Alignment.CenterEnd) {
@@ -550,6 +579,7 @@ private fun OptionsPanel(
                     OptionRow(Icons.Rounded.Audiotrack, "Audio track", onAudio)
                     OptionRow(Icons.Rounded.Subtitles, "Subtitle track", onSubtitle)
                     OptionRow(Icons.Rounded.Speed, "Playback speed", onSpeed)
+                    OptionRow(Icons.Rounded.Settings, "Decoder: ${decoderLabel(decoderMode)}", onDecoder)
                     OptionRow(Icons.Rounded.PictureInPictureAlt, "Picture-in-picture", onPip)
                     OptionRow(Icons.Rounded.Fullscreen, "Fullscreen", onFullscreen)
                     OptionRow(Icons.Rounded.Fullscreen, "Fit / zoom video", onFit)
@@ -644,6 +674,42 @@ private fun SubtitleDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+@Composable
+private fun DecoderDialog(current: DecoderMode, onDismiss: () -> Unit, onSelected: (DecoderMode) -> Unit) {
+    val options = listOf(DecoderMode.HARDWARE, DecoderMode.SOFTWARE, DecoderMode.FFMPEG)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Decoder mode") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Hardware is recommended for lower CPU and battery use.", color = VaultMuted, fontSize = 12.sp)
+                options.forEach { mode ->
+                    TextButton(onClick = { onSelected(mode) }, Modifier.fillMaxWidth()) {
+                        Text(if (mode == current) "✓" else "○", color = Cyan)
+                        Spacer(Modifier.width(12.dp))
+                        Text(decoderLabel(mode), modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+private fun decoderLabel(mode: DecoderMode): String = when (mode) {
+    DecoderMode.HARDWARE -> "Hardware (recommended)"
+    DecoderMode.SOFTWARE -> "System software"
+    DecoderMode.FFMPEG -> "FFmpeg fallback"
+    DecoderMode.AUTO -> "Automatic"
+}
+
+private fun sendDecoderMode(controller: MediaController, action: String, mode: DecoderMode) {
+    controller.sendCustomCommand(
+        SessionCommand(action, Bundle.EMPTY),
+        Bundle().apply { putString("decoder_mode", mode.name) },
     )
 }
 

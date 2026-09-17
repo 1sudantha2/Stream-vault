@@ -17,6 +17,7 @@ import androidx.media3.session.SessionToken
 import com.streamvault.player.data.AppSettings
 import com.streamvault.player.data.SettingsRepository
 import com.streamvault.player.data.VideoItem
+import com.streamvault.player.ui.AdminScreen
 import com.streamvault.player.ui.HomeScreen
 import com.streamvault.player.ui.PlayerScreen
 import com.streamvault.player.ui.SettingsScreen
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
                     subtitleUri = subtitleUri,
                     page = page,
                     onOpenSettings = { page = Page.SETTINGS },
+                    onOpenAdmin = { page = Page.ADMIN },
                     onPlayVideo = {
                         selectedVideo = it
                         subtitleUri = null
@@ -90,12 +92,15 @@ class MainActivity : ComponentActivity() {
                     onSetAutoplay = { settingsRepository.setAutoplay(it) },
                     onSetSpeed = { settingsRepository.setSpeed(it) },
                     onSetSubtitleDelay = { settingsRepository.setSubtitleDelay(it) },
+                    onLoadPlaybackPosition = { settingsRepository.playbackPosition(it) },
+                    onSavePlaybackPosition = { id, position, duration -> settingsRepository.savePlaybackPosition(id, position, duration) },
                     onBackFromPlayer = {
                         selectedVideo = null
                         subtitleUri = null
                         page = Page.HOME
                     },
-                    onBackFromSettings = { page = Page.HOME }
+                    onBackFromSettings = { page = Page.HOME },
+                    onBackFromAdmin = { page = Page.HOME }
                 )
             }
         }
@@ -121,7 +126,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Page { HOME, PLAYER, SETTINGS }
+private enum class Page { HOME, PLAYER, SETTINGS, ADMIN }
 
 @androidx.compose.runtime.Composable
 private fun StreamVaultRoot(
@@ -131,6 +136,7 @@ private fun StreamVaultRoot(
     subtitleUri: Uri?,
     page: Page,
     onOpenSettings: () -> Unit,
+    onOpenAdmin: () -> Unit,
     onPlayVideo: (VideoItem) -> Unit,
     onPlayUrl: (String, String) -> Unit,
     onOpenLocalVideo: () -> Unit,
@@ -140,8 +146,11 @@ private fun StreamVaultRoot(
     onSetAutoplay: suspend (Boolean) -> Unit,
     onSetSpeed: suspend (Float) -> Unit,
     onSetSubtitleDelay: suspend (Long) -> Unit,
+    onLoadPlaybackPosition: suspend (String) -> Long,
+    onSavePlaybackPosition: suspend (String, Long, Long) -> Unit,
     onBackFromPlayer: () -> Unit,
-    onBackFromSettings: () -> Unit
+    onBackFromSettings: () -> Unit,
+    onBackFromAdmin: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     androidx.compose.runtime.LaunchedEffect(settings.keepScreenOn) {
@@ -163,6 +172,8 @@ private fun StreamVaultRoot(
                 onOpenSubtitle = onOpenSubtitle,
                 onSetSpeed = onSetSpeed,
                 onSetSubtitleDelay = onSetSubtitleDelay,
+                onLoadPlaybackPosition = onLoadPlaybackPosition,
+                onSavePlaybackPosition = onSavePlaybackPosition,
                 onBack = onBackFromPlayer
             )
         }
@@ -170,6 +181,7 @@ private fun StreamVaultRoot(
             Page.HOME -> HomeScreen(
                 serverUrl = settings.serverUrl,
                 onOpenSettings = onOpenSettings,
+                onOpenAdmin = onOpenAdmin,
                 onPlayVideo = onPlayVideo,
                 onPlayUrl = onPlayUrl,
                 onOpenLocalVideo = onOpenLocalVideo
@@ -181,9 +193,11 @@ private fun StreamVaultRoot(
                 onSetKeepScreenOn = onSetKeepScreenOn,
                 onSetAutoplay = onSetAutoplay
             )
+            Page.ADMIN -> AdminScreen(serverUrl = settings.serverUrl, onBack = onBackFromAdmin)
             Page.PLAYER -> HomeScreen(
                 serverUrl = settings.serverUrl,
                 onOpenSettings = onOpenSettings,
+                onOpenAdmin = onOpenAdmin,
                 onPlayVideo = onPlayVideo,
                 onPlayUrl = onPlayUrl,
                 onOpenLocalVideo = onOpenLocalVideo
