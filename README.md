@@ -7,7 +7,7 @@ Native Kotlin Android client for the Stream-Vault server. The UI follows the dar
 - Material 3 dark UI with gallery cards, search, server statistics and a URL player.
 - Backend URL is editable in **Settings** and is persisted with DataStore. The client uses the same `GET /api/videos` and `GET /api/videos/{id}` API shape used by the web player.
 - Media3 playback for direct files, HLS/fMP4 and DASH URLs, with automatic format detection.
-- Hardware decoder first with Media3 decoder fallback. Android automatically tries another compatible MediaCodec (including a device software codec when available); no video transcoding is done on the phone.
+- NextPlayer-style Media3 decoder pipeline through NextLib: hardware-first playback with Android software MediaCodec and FFmpeg fallback modes. No video transcoding is done on the phone.
 - Audio and subtitle track selection, local SRT/ASS/SSA/VTT/TTML subtitle picker, subtitle-delay controls, speed presets from 0.25x to 4x, zoom gesture and reset.
 - Player gestures: double-tap left/right for 10-second seek, horizontal swipe to seek, vertical swipe on the left for brightness and on the right for volume.
 - Picture-in-picture, fullscreen, background playback through `MediaSessionService`, Android TV launcher support, and Android Storage Access Framework pickers.

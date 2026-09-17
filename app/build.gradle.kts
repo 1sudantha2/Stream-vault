@@ -63,10 +63,12 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.5.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
-    implementation("androidx.media3:media3-ui:1.5.1")
-    implementation("androidx.media3:media3-session:1.5.1")
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-exoplayer-dash:1.11.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
+    implementation("androidx.media3:media3-ui:1.11.1")
+    implementation("androidx.media3:media3-session:1.11.1")
+    // NextPlayer's decoder extension: hardware, Android software MediaCodec and FFmpeg modes.
+    implementation("io.github.anilbeesetti:nextlib-media3ext:1.11.1-0.16.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
 }
