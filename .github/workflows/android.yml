@@ -29,10 +29,18 @@ jobs:
         with:
           gradle-version: '8.7'
       - name: Build release APK
-        run: gradle :app:assembleRelease --stacktrace
+        run: set -o pipefail; gradle :app:assembleRelease --stacktrace --info 2>&1 | tee build.log
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: stream-vault-release
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+      - name: Upload build log when the build fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stream-vault-build-log
+          path: build.log
+          if-no-files-found: warn
