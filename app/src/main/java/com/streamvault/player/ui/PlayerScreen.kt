@@ -239,6 +239,7 @@ fun PlayerScreen(
                     PlayerChromeTop(
                         title = video.title,
                         controlsVisible = controlsVisible,
+                        decoderMode = decoderMode,
                         onBack = onBack,
                         onAudio = { dialog = PlayerDialog.AUDIO },
                         onSubtitle = { dialog = PlayerDialog.SUBTITLE },
@@ -408,6 +409,7 @@ fun PlayerScreen(
 private fun PlayerChromeTop(
     title: String,
     controlsVisible: Boolean,
+    decoderMode: DecoderMode,
     onBack: () -> Unit,
     onAudio: () -> Unit,
     onSubtitle: () -> Unit,
@@ -421,7 +423,7 @@ private fun PlayerChromeTop(
     ) {
         IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = Color.White) }
         Text(title, color = Color.White, maxLines = 2, modifier = Modifier.weight(1f), fontSize = 16.sp)
-        Text("AUTO", color = Cyan, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 4.dp))
+        Text(decoderShortLabel(decoderMode), color = Cyan, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 4.dp))
         if (controlsVisible) {
             IconButton(onClick = onSpeed) { Icon(Icons.Rounded.Speed, "Playback speed", tint = Color.White) }
             IconButton(onClick = onAudio) { Icon(Icons.Rounded.Audiotrack, "Audio track", tint = Color.White) }
@@ -697,6 +699,13 @@ private fun DecoderDialog(current: DecoderMode, onDismiss: () -> Unit, onSelecte
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
     )
+}
+
+private fun decoderShortLabel(mode: DecoderMode): String = when (mode) {
+    DecoderMode.HARDWARE -> "HW"
+    DecoderMode.SOFTWARE -> "SW"
+    DecoderMode.FFMPEG -> "FF"
+    DecoderMode.AUTO -> "AUTO"
 }
 
 private fun decoderLabel(mode: DecoderMode): String = when (mode) {
