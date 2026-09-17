@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Stream-Vault</string>
+    <string name="app_description">A smooth, open source Media3 video player for Stream-Vault servers</string>
+</resources>
