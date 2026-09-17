@@ -62,6 +62,10 @@ jobs:
           } | while IFS= read -r line; do
             echo "::error title=Gradle diagnostics::$line"
           done
+          echo '--- compiler errors ---'
+          grep -E '(^e:|error:|Unresolved reference|Type mismatch|Cannot access|Overload resolution ambiguity|None of the following)' build.log | head -40 | while IFS= read -r line; do
+            echo "::error title=Compiler::$line"
+          done
       - name: Upload build log when the build fails
         if: failure()
         uses: actions/upload-artifact@v4
