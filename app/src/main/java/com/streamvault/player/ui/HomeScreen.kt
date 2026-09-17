@@ -196,7 +196,7 @@ private fun HomeTopBar(
 }
 
 @Composable
-private fun LogoMark(modifier: Modifier = Modifier) {
+fun LogoMark(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(9.dp))
